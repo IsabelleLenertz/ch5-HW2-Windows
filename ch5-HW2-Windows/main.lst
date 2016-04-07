@@ -1,0 +1,116 @@
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:09:24
+main.asm						     Page 1 - 1
+
+
+				; Constants.asm: 
+				; Author: Isabelle, in class
+				; Date: 2016/04/07
+				; Operating System: Windows
+				; IDE: Visual Studio/MASM
+
+				.386
+				.model flat, stdcall
+				.stack 4096
+				ExitProcess proto,dwExitCode:dword
+
+ 00000000			.data
+ 00000000 10 30 F0 20 50		array1 BYTE 10h, 30h, 0F0h, 20h, 50h, 12h
+	   12
+ 00000006 E0 40 22 E5 40		array2 BYTE 0E0h, 40h, 22h, 0E5h, 40h, 55h
+	   55
+ 0000000C  0000000C [			array3 BYTE 12 DUP(0)
+	    00
+	   ]
+
+ 00000000			.data?
+
+
+ 00000000			.code
+
+				;--------------------------------------------------------------------------------------------------------
+ 00000000			AppendArray PROC
+				; Input:
+				;			eax: address of the first array
+				;			ebx: address of the second array
+				;			edi: address of the third array (has to be size of array1+size of array2)
+				; OutPut:	[edx]: contains array1, then array2
+				; Requires:	nothing
+				;--------------------------------------------------------------------------------------------------------
+					; saves the register to be used
+ 00000000  51				PUSH ecx
+ 00000001  56				PUSH esi
+ 00000002  52				PUSH edx
+
+					; loop going through array1 and coping in into array3
+ 00000003  B9 00000006			MOV ecx, LENGTHOF array1	; initialize loop counter (goes through array1)
+ 00000008  BE 00000000			MOV esi, 0					; initialize counter for indirect addressing
+ 0000000D				AppendArray_copy1:			; begining of the loop
+ 0000000D  8A 34 06				MOV dh, [eax + esi]		; copie a value of the first array into a registers
+ 00000010  88 34 3E				MOV [edi+ esi], dh		; moves the value from the register to array3 in memory
+ 00000013  83 C6 01				ADD esi, (SIZEOF array1/LENGTHOF array1)
+
+					; restors the registers
+ 00000016  52				PUSH edx
+ 00000017  5E				POP esi
+ 00000018  59				POP ecx
+
+ 00000019  C3				ret
+ 0000001A				AppendArray ENDP ; end of the AppendArray procedure
+				;--------------------------------------------------------------------------------------------------------
+ 0000001A			main PROC
+ 0000001A  90				nop
+					;Start of User Code
+
+
+					;End of User Code
+ 0000001B  90				nop
+					invoke ExitProcess, 0
+
+ 00000023			main endp
+				end main
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:09:24
+main.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
+_BSS . . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'BSS'  
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000018 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000023 DWord	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+AppendArray  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000001A Public STDCALL
+  AppendArray_copy1  . . . . . .	L Near	 0000000D _TEXT	
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+main . . . . . . . . . . . . . .	P Near	 0000001A _TEXT	Length= 00000009 Public STDCALL
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+array1 . . . . . . . . . . . . .	Byte	 00000000 _DATA	
+array2 . . . . . . . . . . . . .	Byte	 00000006 _DATA	
+array3 . . . . . . . . . . . . .	Byte	 0000000C _DATA	
+
+	   0 Warnings
+	   0 Errors
