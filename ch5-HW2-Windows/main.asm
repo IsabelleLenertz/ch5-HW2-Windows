@@ -33,16 +33,26 @@ AppendArray PROC
 	PUSH esi
 	PUSH edx
 
-	; loop going through array1 and coping in into array3
+	; loop going through array1 and coping it into array3
 	MOV ecx, LENGTHOF array1	; initialize loop counter (goes through array1)
 	MOV esi, 0					; initialize counter for indirect addressing
 	AppendArray_copy1:			; begining of the loop
-		MOV dh, [eax + esi]		; copie a value of the first array into a registers
-		MOV [edi+ esi], dh		; moves the value from the register to array3 in memory
-		ADD esi, (SIZEOF array1/LENGTHOF array1)
+		MOV dh, [eax + esi]							; copie a value of the first array into a registers
+		MOV [edi+ esi], dh							; moves the value from the register to array3 in memory
+		ADD esi, (SIZEOF array1/LENGTHOF array1)	; goes to the next element in the array
+		LOOP AppendArray_copy1						; goes to the begining of the loop (dec ecx)
 
-	; restors the registers
-	PUSH edx
+	; loop going through array2 and coping it into array3
+	MOV ecx, LENGTHOF array2	; initialize loop counter (goes through array2)
+	MOV esi, 0					; initialize counter for indirect addressing
+	AppendArray_copy2:			; begining of the loop
+		MOV dh, [eax + esi]							; copie a value of the first array into a registers
+		MOV [edi+ esi + LENGTHOF array1], dh		; moves the value from the register to array3
+		ADD esi, (SIZEOF array1/LENGTHOF array1)	; goes to the next element in the array
+		LOOP AppendArray_copy2						; goes to the begining of the loop (dec ecx)
+
+	; restor the registers
+	POP edx
 	POP esi
 	POP ecx
 
@@ -51,10 +61,21 @@ AppendArray PROC
 ;--------------------------------------------------------------------------------------------------------
 main PROC
 	nop
+	PUSHAD
 	;Start of User Code
+	
 
+	; get ready to call the AppendArray procedure
+	MOV eax, OFFSET array1
+	MOV ebx, OFFSET array2
+	MOV edi, OFFSET array3
+	; appends array2 to array1 and stor them into array3
+	CALL AppendArray
+
+	
 
 	;End of User Code
+	POPAD
 	nop
 	invoke ExitProcess, 0
 

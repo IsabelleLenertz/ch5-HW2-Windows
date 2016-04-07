@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:09:24
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:31:36
 main.asm						     Page 1 - 1
 
 
@@ -41,34 +41,52 @@ main.asm						     Page 1 - 1
  00000001  56				PUSH esi
  00000002  52				PUSH edx
 
-					; loop going through array1 and coping in into array3
+					; loop going through array1 and coping it into array3
  00000003  B9 00000006			MOV ecx, LENGTHOF array1	; initialize loop counter (goes through array1)
  00000008  BE 00000000			MOV esi, 0					; initialize counter for indirect addressing
  0000000D				AppendArray_copy1:			; begining of the loop
- 0000000D  8A 34 06				MOV dh, [eax + esi]		; copie a value of the first array into a registers
- 00000010  88 34 3E				MOV [edi+ esi], dh		; moves the value from the register to array3 in memory
- 00000013  83 C6 01				ADD esi, (SIZEOF array1/LENGTHOF array1)
+ 0000000D  8A 34 06				MOV dh, [eax + esi]							; copie a value of the first array into a registers
+ 00000010  88 34 3E				MOV [edi+ esi], dh							; moves the value from the register to array3 in memory
+ 00000013  83 C6 01				ADD esi, (SIZEOF array1/LENGTHOF array1)	; goes to the next element in the array
+ 00000016  E2 F5				LOOP AppendArray_copy1						; goes to the begining of the loop (dec ecx)
 
-					; restors the registers
- 00000016  52				PUSH edx
- 00000017  5E				POP esi
- 00000018  59				POP ecx
+					; loop going through array2 and coping it into array3
+ 00000018  B9 00000006			MOV ecx, LENGTHOF array2	; initialize loop counter (goes through array2)
+ 0000001D  BE 00000000			MOV esi, 0					; initialize counter for indirect addressing
+ 00000022				AppendArray_copy2:			; begining of the loop
+ 00000022  8A 34 06				MOV dh, [eax + esi]							; copie a value of the first array into a registers
+ 00000025  88 74 3E 06				MOV [edi+ esi + LENGTHOF array1], dh		; moves the value from the register to array3
+ 00000029  83 C6 01				ADD esi, (SIZEOF array1/LENGTHOF array1)	; goes to the next element in the array
+ 0000002C  E2 F4				LOOP AppendArray_copy2						; goes to the begining of the loop (dec ecx)
 
- 00000019  C3				ret
- 0000001A				AppendArray ENDP ; end of the AppendArray procedure
+					; restor the registers
+ 0000002E  5A				POP edx
+ 0000002F  5E				POP esi
+ 00000030  59				POP ecx
+
+ 00000031  C3				ret
+ 00000032				AppendArray ENDP ; end of the AppendArray procedure
 				;--------------------------------------------------------------------------------------------------------
- 0000001A			main PROC
- 0000001A  90				nop
+ 00000032			main PROC
+ 00000032  90				nop
 					;Start of User Code
+					
+ 00000033  60				PUSHAD
 
+ 00000034  B8 00000000 R		MOV eax, OFFSET array1
+ 00000039  BB 00000006 R		MOV ebx, OFFSET array2
+ 0000003E  BF 0000000C R		MOV edi, OFFSET array3
+ 00000043  E8 FFFFFFB8			Call AppendArray
+
+ 00000048  61				POPAD
 
 					;End of User Code
- 0000001B  90				nop
+ 00000049  90				nop
 					invoke ExitProcess, 0
 
- 00000023			main endp
+ 00000051			main endp
 				end main
-Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:09:24
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:31:36
 main.asm						     Symbols 2 - 1
 
 
@@ -82,17 +100,18 @@ FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _BSS . . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'BSS'  
 _DATA  . . . . . . . . . . . . .	32 Bit	 00000018 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000023 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000051 DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
 
                 N a m e                 Type     Value    Attr
 
-AppendArray  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000001A Public STDCALL
+AppendArray  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000032 Public STDCALL
   AppendArray_copy1  . . . . . .	L Near	 0000000D _TEXT	
+  AppendArray_copy2  . . . . . .	L Near	 00000022 _TEXT	
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 0000001A _TEXT	Length= 00000009 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 0000001F Public STDCALL
 
 
 Symbols:
