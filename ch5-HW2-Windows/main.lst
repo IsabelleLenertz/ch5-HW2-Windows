@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:31:36
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 20:35:48
 main.asm						     Page 1 - 1
 
 
@@ -13,6 +13,17 @@ main.asm						     Page 1 - 1
 				.stack 4096
 				ExitProcess proto,dwExitCode:dword
 
+				; Required by Bill's print to console function
+ =-0000000B			getstdout = -11 
+				WriteFile PROTO NEAR32 stdcall, \ 
+				        handle:dword,			\ 
+				        buffer:ptr byte,		\ 
+				        bytes:dword,			\ 
+				        written: ptr dword,		\ 
+				        overlapped: ptr byte 
+				GetStdHandle PROTO NEAR32, device:dword 
+				ExitProcess PROTO NEAR32, exitcode:dword 
+
  00000000			.data
  00000000 10 30 F0 20 50		array1 BYTE 10h, 30h, 0F0h, 20h, 50h, 12h
 	   12
@@ -22,9 +33,19 @@ main.asm						     Page 1 - 1
 	    00
 	   ]
 
+					; Required by Bill's print to console functions
+ 00000018 48 65 6C 6C 6F		message db "Hello World!", 13, 10 
+	   20 57 6F 72 6C
+	   64 21 0D 0A
+ 00000026 0000000E			msg_size dd $ - offset message
+ 0000002A 0D 0A 00			szLF  BYTE  0dh, 0ah, 0h						; goes to the next line
+
  00000000			.data?
-
-
+ 00000000  0000000C [			buffer BYTE 12 DUP(?)
+	    00
+	   ]
+					; Required by Bill's print to console function
+ 0000000C 00000000			written dd ?
  00000000			.code
 
 				;--------------------------------------------------------------------------------------------------------
@@ -67,26 +88,126 @@ main.asm						     Page 1 - 1
  00000031  C3				ret
  00000032				AppendArray ENDP ; end of the AppendArray procedure
 				;--------------------------------------------------------------------------------------------------------
- 00000032			main PROC
- 00000032  90				nop
+
+
+				;--------------------------------------------------------------------------------------------------------
+				; Bill's code
+ 00000032			DisplayText proc
+				;Assumes that the message variable and the msg_size variable have been set
+				    invoke GetStdHandle, getstdout
+				    invoke WriteFile,		\
+				           eax,				\
+				           OFFSET message,	\
+				           msg_size,		\
+				           OFFSET written,	\
+				           0
+ 00000051  C3				ret
+ 00000052			DisplayText endp
+				;------------------------------------------------------------------------------------------
+
+
+				;------------------------------------------------------------------------------------------
+ 00000052			DisplayNL PROC
+				;		Assumes that the szFL has been defined in the .data section;
+				;		szLF  BYTE  0dh, 0ah, 0h
+				;------------------------------------------------------------------------------------------
+				    invoke GetStdHandle, getstdout
+				    invoke WriteFile,		\
+				           eax,				\
+				           OFFSET szLF,		\
+				           3,				\
+				           OFFSET written,	\
+				           0
+ 0000006D  C3				ret
+ 0000006E			DisplayNL ENDP
+				;-------------------------------------------------------------------------------------------------
+
+
+				;-----------------------------------------------------------------------
+ 0000006E			ConvertIntToAscii:
+				;	Converts an unsigned integer to ascii and prints it. Max 16-bits value
+				;	Receives:	the value to be converted into ax (a 16-bit value)
+				;				the address to store the new value into esi
+				;	Returns:	The new ascii value into the address pointed byt esi
+				; 	Requires:	
+				;-----------------------------------------------------------------------
+					; saves the value of ecx, ebx, and edi
+ 0000006E  53				PUSH ebx
+ 0000006F  51				PUSH ecx
+ 00000070  52				PUSH edx
+ 00000071  57				PUSH edi
+ 00000072  56				push esi
+					
+ 00000073  BA 00000000			MOV	edx, 0h						; clear edx
+ 00000078  B3 0A			MOV	bl, 0ah						; get ready to divide by 10
+ 0000007A  BF 0000000F			MOV	edi, 15						; initialize position counter
+
+ 0000007F				ContConvert:
+ 0000007F  F6 F3				div	bl						; divide. Remainder will be in ah, result in al					PROGRAM RECEIVED DIGNAL SIGFPE, Arthimetic exception
+ 00000081  80 C4 30				add ah, 30h					; add 48 (30h) to ah to convert to ascii
+						
+ 00000084  88 24 37				MOV [esi+edi], ah			; move the ascii value into the inidicated storage address+edi
+						
+ 00000087  B4 00				MOV ah, 0h					; clears out ah - no longger needed
+ 00000089  3C 00				CMP al, 0h					; Check al and make sur it is not zero
+ 0000008B  74 03				JE PrintResult				; Leave the loop if al is 0
+													; Else continue
+ 0000008D  4F					DEC edi						; Decrement the number of elements
+						
+ 0000008E  EB EF			jmp ContConvert					; Loop again
+
+ 00000090				PrintResult:					; Print the result
+						
+ 00000090  BA 00000010				MOV edx, 16
+ 00000095  2B D7				SUB edx, edi				; The length of the data to print is moved to edx (required by the DisplayText function)
+ 00000097  89 15 00000026 R			MOV msg_size, edx
+						
+								
+ 0000009D  8B CE				MOV ecx, esi				; The address of the data to print is moved to ecx (required by the DisplayText function)
+ 0000009F  03 CF				ADD ecx, edi
+ 000000A1  8B F1				MOV esi, ecx
+						;MOV bx, WORD PTR[ecx]
+						;MOV WORD PTR message, bx
+						;CALL DisplayText
+						
+					; restors the value of ecx, ebx, and edi
+ 000000A3  5E				POP esi
+ 000000A4  5F				POP edi
+ 000000A5  5A				POP edx
+ 000000A6  59				POP ecx
+ 000000A7  5B				POP ebx
+					
+ 000000A8  C3				RET								;Exit the procedue
+				;end of ConvertIntToAscii
+				;------------------------------------------------------------------------------------------------
+
+ 000000A9			main PROC
+ 000000A9  90				nop
+ 000000AA  60				PUSHAD
 					;Start of User Code
 					
- 00000033  60				PUSHAD
 
- 00000034  B8 00000000 R		MOV eax, OFFSET array1
- 00000039  BB 00000006 R		MOV ebx, OFFSET array2
- 0000003E  BF 0000000C R		MOV edi, OFFSET array3
- 00000043  E8 FFFFFFB8			Call AppendArray
+					; get ready to call the AppendArray procedure
+ 000000AB  B8 00000000 R		MOV eax, OFFSET array1
+ 000000B0  BB 00000006 R		MOV ebx, OFFSET array2
+ 000000B5  BF 0000000C R		MOV edi, OFFSET array3
+					; appends array2 to array1 and stor them into array3
+ 000000BA  E8 FFFFFF41			CALL AppendArray
 
- 00000048  61				POPAD
+ 000000BF  BE 00000018 R		MOV esi, OFFSET message 
+ 000000C4  66| 0F B6 05			MOVZX ax, [array3]
+	   0000000C R
+ 000000CC  E8 FFFFFF9D			CALL ConvertIntToAscii
+					
 
 					;End of User Code
- 00000049  90				nop
+ 000000D1  61				POPAD
+ 000000D2  90				nop
 					invoke ExitProcess, 0
 
- 00000051			main endp
+ 000000DA			main endp
 				end main
-Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 13:31:36
+Microsoft (R) Macro Assembler Version 14.00.23506.0	    04/07/16 20:35:48
 main.asm						     Symbols 2 - 1
 
 
@@ -98,9 +219,9 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_BSS . . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'BSS'  
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000018 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000051 DWord	  Public  'CODE'	
+_BSS . . . . . . . . . . . . . .	32 Bit	 00000010 DWord	  Public  'BSS'  
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000002D DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000DA DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -110,8 +231,12 @@ Procedures, parameters, and locals:
 AppendArray  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000032 Public STDCALL
   AppendArray_copy1  . . . . . .	L Near	 0000000D _TEXT	
   AppendArray_copy2  . . . . . .	L Near	 00000022 _TEXT	
+DisplayNL  . . . . . . . . . . .	P Near	 00000052 _TEXT	Length= 0000001C Public STDCALL
+DisplayText  . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 00000020 Public STDCALL
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000032 _TEXT	Length= 0000001F Public STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+main . . . . . . . . . . . . . .	P Near	 000000A9 _TEXT	Length= 00000031 Public STDCALL
 
 
 Symbols:
@@ -127,9 +252,18 @@ Symbols:
 @fardata?  . . . . . . . . . . .	Text   	 FLAT
 @fardata . . . . . . . . . . . .	Text   	 FLAT
 @stack . . . . . . . . . . . . .	Text   	 FLAT
+ContConvert  . . . . . . . . . .	L Near	 0000007F _TEXT	
+ConvertIntToAscii  . . . . . . .	L Near	 0000006E _TEXT	
+PrintResult  . . . . . . . . . .	L Near	 00000090 _TEXT	
 array1 . . . . . . . . . . . . .	Byte	 00000000 _DATA	
 array2 . . . . . . . . . . . . .	Byte	 00000006 _DATA	
 array3 . . . . . . . . . . . . .	Byte	 0000000C _DATA	
+buffer . . . . . . . . . . . . .	Byte	 00000000 _BSS	
+getstdout  . . . . . . . . . . .	Number	 -0000000Bh   
+message  . . . . . . . . . . . .	Byte	 00000018 _DATA	
+msg_size . . . . . . . . . . . .	DWord	 00000026 _DATA	
+szLF . . . . . . . . . . . . . .	Byte	 0000002A _DATA	
+written  . . . . . . . . . . . .	DWord	 0000000C _BSS	
 
 	   0 Warnings
 	   0 Errors
